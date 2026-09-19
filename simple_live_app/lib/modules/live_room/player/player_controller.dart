@@ -275,7 +275,10 @@ mixin PlayerSystemMixin on PlayerMixin, PlayerStateMixin, PlayerDanmakuMixin {
     }
 
     // 屏幕常亮
-    //WakelockPlus.enable();
+    // 修复:进入直播间后加载/缓冲期间尚未触发playing事件,常亮未生效导致息屏
+    if (Platform.isAndroid || Platform.isIOS) {
+      WakelockPlus.enable();
+    }
 
     // 开始隐藏计时
     resetHideControlsTimer();
@@ -410,6 +413,9 @@ mixin PlayerSystemMixin on PlayerMixin, PlayerStateMixin, PlayerDanmakuMixin {
   Future setLandscapeOrientation() async {
     if (await beforeIOS16()) {
       AutoOrientation.landscapeAutoMode();
+    } else if (Platform.isAndroid) {
+      // Android:强制传感器横屏,忽略系统旋转锁,可在左/右横向间自由切换(类似YouTube全屏)
+      AutoOrientation.landscapeAutoMode(forceSensor: true);
     } else {
       SystemChrome.setPreferredOrientations([
         DeviceOrientation.landscapeLeft,
@@ -422,6 +428,9 @@ mixin PlayerSystemMixin on PlayerMixin, PlayerStateMixin, PlayerDanmakuMixin {
   Future setPortraitOrientation() async {
     if (await beforeIOS16()) {
       AutoOrientation.portraitAutoMode();
+    } else if (Platform.isAndroid) {
+      // Android:交还方向控制权,恢复跟随用户系统旋转设置(SCREEN_ORIENTATION_USER)
+      await AutoOrientation.setScreenOrientationUser();
     } else {
       await SystemChrome.setPreferredOrientations(DeviceOrientation.values);
     }
